@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wakala Dashboard Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg-color: #ffffff;
+            --text-color: #1f2937;
+            --text-muted-color: #6b7280;
+            --border-color: #e5e7eb;
+            --header-gradient: linear-gradient(90deg, #1e3a8a, #3b82f6);
+        }
+
+        html.dark {
+            --bg-color: #111827;
+            --card-bg-color: #1f2937;
+            --text-color: #f9fafb;
+            --text-muted-color: #9ca3af;
+            --border-color: #374151;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .gradient-header {
+            background: var(--header-gradient);
+        }
+        html.dark .gradient-header {
+             background: linear-gradient(90deg, #1e3a8a, #374151);
+        }
+        .card {
+            background-color: var(--card-bg-color);
+            border-color: var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s, border-color 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+        }
+        .focus-ring:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+        }
+        .nav-link {
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            color: white;
+            display: flex;
+            align-items: center;
+        }
+        .nav-link:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: left 0.3s ease;
+        }
+        .nav-link:hover:before { left: 0; }
+        .nav-link.active {
+            background-color: #ffffff;
+            color: #2563eb;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        html.dark .nav-link.active {
+            background-color: var(--bg-color);
+            color: #60a5fa;
+        }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+        }
+        .btn-primary:hover { background: #1d4ed8; box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4); }
+        
+        #confirmation-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
+        }
+        #confirmation-modal.show { opacity: 1; visibility: visible; }
+        .modal-content {
+            background: var(--card-bg-color); padding: 2rem; border-radius: 16px;
+            width: 90%; max-width: 500px; text-align: center;
+            transform: scale(0.95); transition: transform 0.3s;
+        }
+        #confirmation-modal.show .modal-content { transform: scale(1); }
+
+        #notification {
+            position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
+            padding: 14px 28px; border-radius: 8px; color: white;
+            z-index: 1001; font-weight: 500; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: bottom 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        #notification.show { bottom: 20px; }
+        .bg-success { background: linear-gradient(90deg, #10b981, #34d399); }
+        .bg-error { background: linear-gradient(90deg, #ef4444, #f87171); }
+    </style>
+</head>
+<body>
+
+    <header class="gradient-header text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto py-4 px-6 flex flex-col md:flex-row justify-between items-center">
+            <div class="mb-4 md:mb-0 text-center md:text-left">
+                <h1 class="text-3xl font-extrabold tracking-tight">WakalaPro</h1>
+                <p id="current-datetime" class="text-sm opacity-80"></p>
+            </div>
+            <div class="flex items-center gap-4">
+                <nav id="main-nav" class="flex flex-wrap justify-center gap-2 bg-white/10 p-1 rounded-xl mt-4 md:mt-0">
+                    <a class="nav-link active p-4 sm:px-4 sm:py-2" data-target="page-dashboard"><i class="fas fa-tachometer-alt sm:mr-2"></i><span class="hidden sm:inline">Dashboard</span></a>
+                    <a class="nav-link p-4 sm:px-4 sm:py-2" data-target="page-add-transaction"><i class="fas fa-plus-circle sm:mr-2"></i><span class="hidden sm:inline">Add</span></a>
+                    <a class="nav-link p-4 sm:px-4 sm:py-2" data-target="page-float"><i class="fas fa-wallet sm:mr-2"></i><span class="hidden sm:inline">Float</span></a>
+                    <a class="nav-link p-4 sm:px-4 sm:py-2" data-target="page-history"><i class="fas fa-history sm:mr-2"></i><span class="hidden sm:inline">History</span></a>
+                    <a class="nav-link p-4 sm:px-4 sm:py-2" data-target="page-profile"><i class="fas fa-user-circle sm:mr-2"></i><span class="hidden sm:inline">Profile</span></a>
+                </nav>
+                <button id="theme-toggle" class="p-2 rounded-full text-white hover:bg-white/20">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-6">
+
+        <div id="page-dashboard" class="page active space-y-8">
+             <div class="card p-4 flex flex-col sm:flex-row flex-wrap gap-4 items-center">
+                <div class="flex items-center space-x-2 flex-grow w-full sm:w-auto">
+                    <label for="dateFilter" class="font-medium text-gray-700 dark:text-gray-300"><i class="far fa-calendar-alt text-blue-500"></i> Date:</label>
+                    <select id="dateFilter" class="w-full max-w-xs bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 focus-ring">
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="mtd">This Month (MTD)</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2 flex-grow w-full sm:w-auto">
+                    <label for="serviceFilter" class="font-medium text-gray-700 dark:text-gray-300"><i class="fas fa-cogs text-blue-500"></i> Service:</label>
+                    <select id="serviceFilter" class="w-full max-w-xs bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 focus-ring">
+                        <option value="all">All Services</option>
+                        <option>M-Pesa</option><option>Airtel Money</option><option>Tigo Pesa / Mixx</option><option>Halopesa</option><option>TTCL Pesa</option><option>EZyPesa</option><option>AzamPesa</option><option>Selcom Pesa</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="card p-6 flex items-center space-x-4">
+                    <div class="bg-blue-100 text-blue-600 p-4 rounded-full"><i class="fas fa-exchange-alt fa-2x"></i></div>
+                    <div>
+                        <h2 id="todayTransactionsTitle" class="text-sm font-medium text-gray-500 dark:text-gray-400">Today’s Transactions</h2>
+                        <p id="todayTransactions" class="text-4xl font-bold text-blue-600">0</p>
+                    </div>
+                </div>
+                <div class="card p-6 flex items-center space-x-4">
+                    <div class="bg-green-100 text-green-600 p-4 rounded-full"><i class="fas fa-arrow-down fa-2x"></i></div>
+                    <div>
+                        <h2 id="todayCashInTotalTitle" class="text-sm font-medium text-gray-500 dark:text-gray-400">Today's Total Cash-In</h2>
+                        <p id="todayCashInTotal" class="text-3xl font-bold text-green-600">Tsh 0</p>
+                    </div>
+                </div>
+                <div class="card p-6 flex items-center space-x-4">
+                    <div class="bg-red-100 text-red-600 p-4 rounded-full"><i class="fas fa-arrow-up fa-2x"></i></div>
+                    <div>
+                        <h2 id="todayCashOutTotalTitle" class="text-sm font-medium text-gray-500 dark:text-gray-400">Today's Total Cash-Out</h2>
+                        <p id="todayCashOutTotal" class="text-3xl font-bold text-red-600">Tsh 0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card p-6">
+                <h2 class="text-2xl font-bold mb-4">Daily Summary</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr class="text-left text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                <th class="px-4 py-3 font-semibold">Service</th>
+                                <th class="px-4 py-3 font-semibold">Float Balance</th>
+                                <th class="px-4 py-3 font-semibold">Total Transaction</th>
+                                <th class="px-4 py-3 font-semibold">Cash In</th>
+                                <th class="px-4 py-3 font-semibold">Cash Out</th>
+                                <th class="px-4 py-3 font-semibold">Total Cash In/Out</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-summary-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <!-- Summary data will be inserted here by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-add-transaction" class="page">
+            <div class="card p-6 max-w-2xl mx-auto">
+                <h2 class="text-2xl font-bold mb-4">Add New Transaction</h2>
+                <form id="transactionForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="service" class="block text-sm font-medium text-gray-600 dark:text-gray-300">Operator Service</label>
+                            <select id="service" class="w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 mt-1 focus-ring">
+                                <option>M-Pesa</option><option>Airtel Money</option><option>Tigo Pesa / Mixx</option><option>Halopesa</option><option>TTCL Pesa</option><option>EZyPesa</option><option>AzamPesa</option><option>Selcom Pesa</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="type" class="block text-sm font-medium text-gray-600 dark:text-gray-300">Transaction Type</label>
+                            <select id="type" class="w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 mt-1 focus-ring">
+                                <option>Cash-Out</option><option>Cash-In</option><option>Transfer</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div>
+                            <label for="mobileNumber" class="block text-sm font-medium text-gray-600 dark:text-gray-300">Mobile Number</label>
+                            <input type="tel" id="mobileNumber" class="w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 mt-1 focus-ring" placeholder="e.g., 0712345678" />
+                        </div>
+                        <div>
+                            <label for="amount" class="block text-sm font-medium text-gray-600 dark:text-gray-300">Amount (Tsh)</label>
+                            <input type="number" id="amount" class="w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 mt-1 focus-ring" placeholder="e.g., 10000" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full"><i class="fas fa-plus-circle mr-2"></i>Save Transaction</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="page-float" class="page space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="card p-6">
+                     <h2 class="text-2xl font-bold mb-4">Add New Float</h2>
+                     <form id="floatForm" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="floatService" class="block text-sm font-medium text-gray-600 dark:text-gray-300">Operator Service</label>
+                                <select id="floatService" class="w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 mt-1 focus-ring">
+                                    <option>M-Pesa</option><option>Airtel Money</option><option>Tigo Pesa / Mixx</option><option>Halopesa</option><option>TTCL Pesa</option><option>EZyPesa</option><option>AzamPesa</option><option>Selcom Pesa</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="floatType" class="block text-sm font-medium text-gray-600 dark:text-gray-300">Transaction Type</label>
+                                <select id="floatType" class="w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 mt-1 focus-ring">
+                                    <option value="received">Float-In</option>
+                                    <option value="sent">Float-Out</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div>
+                                <label for="floatAggregatorNumber" class="block text-sm font-medium text-gray-600 dark:text-gray-300">Aggregator/Super Number</label>
+                                <input type="tel" id="floatAggregatorNumber" class="w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 mt-1 focus-ring" placeholder="e.g., 0712345678" />
+                            </div>
+                            <div>
+                                <label for="floatAmount" class="block text-sm font-medium text-gray-600 dark:text-gray-300">Amount (Tsh)</label>
+                                <input type="number" id="floatAmount" class="w-full bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 mt-1 focus-ring" placeholder="e.g., 500000" />
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full"><i class="fas fa-save mr-2"></i>Save Float</button>
+                     </form>
+                </div>
+                <div class="card p-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                        <h2 class="text-2xl font-bold">📜 Float History Log</h2>
+                        <div class="flex items-center gap-4 w-full sm:w-auto">
+                            <input type="text" id="searchFloat" class="w-full sm:w-64 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 focus-ring" placeholder="Search float history...">
+                            <button id="exportFloatBtn" class="btn bg-green-600 text-white hover:bg-green-700 text-sm py-2 px-4"><i class="fas fa-file-csv mr-2"></i>Export</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                <tr class="text-left text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                    <th class="px-4 py-3 font-semibold">Date</th>
+                                    <th class="px-4 py-3 font-semibold">Service</th>
+                                    <th class="px-4 py-3 font-semibold">Type</th>
+                                    <th class="px-4 py-3 font-semibold">Amount</th>
+                                    <th class="px-4 py-3 font-semibold text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="floatHistory" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-history" class="page">
+            <div class="card p-6">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                    <h2 class="text-2xl font-bold">📋 All Transactions</h2>
+                    <div class="flex items-center gap-4 w-full sm:w-auto">
+                        <input type="text" id="searchTransactions" class="w-full sm:w-64 bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-2 focus-ring" placeholder="Search transactions...">
+                        <button id="exportTransactionsBtn" class="btn bg-green-600 text-white hover:bg-green-700 text-sm py-2 px-4"><i class="fas fa-file-csv mr-2"></i>Export</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr class="text-left text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+                                <th class="px-4 py-3 font-semibold">Date</th>
+                                <th class="px-4 py-3 font-semibold">Service</th>
+                                <th class="px-4 py-3 font-semibold">Mobile No.</th>
+                                <th class="px-4 py-3 font-semibold">Amount</th>
+                                <th class="px-4 py-3 font-semibold">Type</th>
+                                <th class="px-4 py-3 font-semibold text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-profile" class="page">
+             <div class="card p-8 max-w-md mx-auto text-center">
+                <i class="fas fa-user-shield fa-3x text-blue-500 mb-4"></i>
+                <h2 class="text-2xl font-bold mb-6">Device Profile</h2>
+                <div class="space-y-4 text-left">
+                    <div><p class="text-sm text-gray-500 dark:text-gray-400">Device ID</p><p id="userId" class="font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded-md break-all"></p></div>
+                    <div><p class="text-sm text-gray-500 dark:text-gray-400">App Version</p><p id="appId" class="font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded-md break-all">v1.3.0-local</p></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="notification"></div>
+    <div id="confirmation-modal">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-2">Are you sure?</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">This action cannot be undone.</p>
+            <div class="flex justify-center gap-4">
+                <button id="cancel-delete-btn" class="btn bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200">Cancel</button>
+                <button id="confirm-delete-btn" class="btn bg-red-600 hover:bg-red-700 text-white">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const TRANSACTIONS_KEY = 'wakalaPro_transactions';
+        const FLOAT_TX_KEY = 'wakalaPro_floatTxs';
+        const USER_ID_KEY = 'wakalaPro_userId';
+        const THEME_KEY = 'wakalaPro_theme';
+
+        let allTransactions = [];
+        let allFloatTxs = [];
+        const SERVICES = ["M-Pesa", "Airtel Money", "Tigo Pesa / Mixx", "Halopesa", "TTCL Pesa", "EZyPesa", "AzamPesa", "Selcom Pesa"];
+
+        const mainNav = document.getElementById("main-nav");
+        const dateTimeEl = document.getElementById('current-datetime');
+        const modal = document.getElementById('confirmation-modal');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        
+        let deleteAction = null;
+
+        const getFromStorage = (key, defaultValue) => {
+            const data = localStorage.getItem(key);
+            if (data === null || data === undefined) return defaultValue;
+            try { return JSON.parse(data); } catch(e) { return data; }
+        };
+
+        const saveToStorage = (key, data) => {
+            localStorage.setItem(key, JSON.stringify(data));
+        };
+        
+        const initApp = () => {
+            let userId = getFromStorage(USER_ID_KEY, null);
+            if (!userId) {
+                userId = `device-${crypto.randomUUID()}`;
+                saveToStorage(USER_ID_KEY, userId);
+            }
+            document.getElementById("userId").textContent = userId;
+
+            allTransactions = getFromStorage(TRANSACTIONS_KEY, []);
+            allFloatTxs = getFromStorage(FLOAT_TX_KEY, []);
+
+            allTransactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            allFloatTxs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            renderTransactions(allTransactions);
+            renderFloatHistory(allFloatTxs);
+            updateDashboard();
+
+            displayDateTime();
+            setInterval(displayDateTime, 60000);
+            setupEventListeners();
+            applyTheme(getFromStorage(THEME_KEY, 'light'));
+        };
+        
+        function displayDateTime() {
+            if (dateTimeEl) {
+                const now = new Date();
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Nairobi' };
+                dateTimeEl.textContent = now.toLocaleString('en-US', options);
+            }
+        }
+
+        function setupEventListeners() {
+            mainNav.addEventListener('click', (e) => {
+                const link = e.target.closest('.nav-link');
+                if (link) {
+                    const targetPageId = link.dataset.target;
+                    mainNav.querySelector('.active').classList.remove('active');
+                    link.classList.add('active');
+                    document.querySelector('.page.active').classList.remove('active');
+                    document.getElementById(targetPageId).classList.add('active');
+                }
+            });
+
+            document.getElementById('serviceFilter').addEventListener('change', updateDashboard);
+            document.getElementById('dateFilter').addEventListener('change', updateDashboard);
+            document.getElementById('transactionForm').addEventListener("submit", (e) => handleTransactionForm(e));
+            document.getElementById('floatForm').addEventListener("submit", (e) => handleFloatForm(e));
+            
+            document.getElementById("exportTransactionsBtn").addEventListener("click", () => exportToCSV(allTransactions, 'transactions.csv'));
+            document.getElementById("exportFloatBtn").addEventListener("click", () => exportToCSV(allFloatTxs, 'float_history.csv'));
+            document.getElementById("searchTransactions").addEventListener("input", (e) => handleSearch(e, 'transaction'));
+            document.getElementById("searchFloat").addEventListener("input", (e) => handleSearch(e, 'float'));
+            themeToggle.addEventListener('click', toggleTheme);
+            
+            document.body.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-btn');
+                if (deleteBtn) {
+                    const docId = deleteBtn.dataset.id;
+                    const type = deleteBtn.dataset.type;
+                    deleteAction = () => performDelete(docId, type, deleteBtn);
+                    showModal();
+                }
+            });
+
+            confirmDeleteBtn.addEventListener('click', () => { if (deleteAction) deleteAction(); });
+            cancelDeleteBtn.addEventListener('click', hideModal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
+        }
+        
+        function renderTransactions(transactions) {
+            const tableBody = document.getElementById("transactions");
+            tableBody.innerHTML = "";
+            transactions.forEach(tx => addTransactionToTable(tx, false));
+            checkEmptyTables();
+        }
+
+        function renderFloatHistory(floatTxs) {
+            const tableBody = document.getElementById("floatHistory");
+            tableBody.innerHTML = "";
+            floatTxs.forEach(ftx => addFloatToTable(ftx, false));
+            checkEmptyTables();
+        }
+
+        function addTransactionToTable(tx, prepend = true) {
+            const tableBody = document.getElementById("transactions");
+            const placeholder = tableBody.querySelector('td[colspan="6"]');
+            if (placeholder) tableBody.innerHTML = '';
+
+            const row = prepend ? tableBody.insertRow(0) : tableBody.insertRow();
+            row.className = "hover:bg-gray-100 dark:hover:bg-gray-800";
+            row.dataset.id = tx.id;
+            row.innerHTML = `
+                <td class="px-4 py-3 whitespace-nowrap">${new Date(tx.timestamp).toLocaleString() || 'N/A'}</td>
+                <td class="px-4 py-3 font-medium">${tx.service}</td>
+                <td class="px-4 py-3 font-mono">${tx.mobileNumber || '-'}</td>
+                <td class="px-4 py-3">Tsh ${tx.amount ? tx.amount.toLocaleString() : '0'}</td>
+                <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${tx.type === 'Cash-In' ? 'bg-green-100 text-green-800' : tx.type === 'Cash-Out' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}">${tx.type}</span></td>
+                <td class="px-4 py-3 text-right">
+                    <button data-id="${tx.id}" data-type="transaction" class="delete-btn text-red-500 hover:text-red-700 font-semibold"><i class="fas fa-trash-alt"></i></button>
+                </td>`;
+        }
+
+        function addFloatToTable(ftx, prepend = true) {
+            const tableBody = document.getElementById("floatHistory");
+            const placeholder = tableBody.querySelector('td[colspan="5"]');
+            if (placeholder) tableBody.innerHTML = '';
+
+            const row = prepend ? tableBody.insertRow(0) : tableBody.insertRow();
+            row.className = "hover:bg-gray-100 dark:hover:bg-gray-800";
+            row.dataset.id = ftx.id;
+            const typeClass = ftx.type === 'received' ? 'text-green-600' : 'text-red-600';
+            row.innerHTML = `
+                <td class="px-4 py-3 whitespace-nowrap">${new Date(ftx.timestamp).toLocaleString() || 'N/A'}</td>
+                <td class="px-4 py-3 font-medium">${ftx.service}</td>
+                <td class="px-4 py-3 font-medium ${typeClass} capitalize"><i class="fas ${ftx.type === 'received' ? 'fa-arrow-down' : 'fa-arrow-up'} mr-2"></i>${ftx.type}</td>
+                <td class="px-4 py-3">Tsh ${ftx.amount ? ftx.amount.toLocaleString() : '0'}</td>
+                <td class="px-4 py-3 text-right">
+                    <button data-id="${ftx.id}" data-type="float" class="delete-btn text-red-500 hover:text-red-700 font-semibold"><i class="fas fa-trash-alt"></i></button>
+                </td>`;
+        }
+        
+        function checkEmptyTables() {
+            if (document.getElementById("transactions").children.length === 0) {
+                document.getElementById("transactions").innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">No transactions recorded yet.</td></tr>`;
+            }
+            if (document.getElementById("floatHistory").children.length === 0) {
+                document.getElementById("floatHistory").innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">No float history yet.</td></tr>`;
+            }
+        }
+
+        function updateDashboard() {
+            const serviceFilterValue = document.getElementById("serviceFilter").value;
+            const dateRange = document.getElementById("dateFilter").value;
+            const now = new Date();
+            let startDate, endDate, titleText;
+
+            switch(dateRange) {
+                case 'yesterday':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    titleText = "Yesterday's";
+                    break;
+                case 'mtd':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+                    titleText = "This Month's";
+                    break;
+                default:
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+                    titleText = "Today's";
+            }
+            
+            const dateFilteredTxs = allTransactions.filter(tx => new Date(tx.timestamp) >= startDate && new Date(tx.timestamp) < endDate);
+            
+            // Update summary cards
+            document.getElementById('todayTransactionsTitle').textContent = `${titleText} Transactions`;
+            document.getElementById('todayCashInTotalTitle').textContent = `${titleText} Total Cash-In`;
+            document.getElementById('todayCashOutTotalTitle').textContent = `${titleText} Total Cash-Out`;
+
+            const fullyFilteredTxs = serviceFilterValue === 'all' ? dateFilteredTxs : dateFilteredTxs.filter(tx => tx.service === serviceFilterValue);
+            document.getElementById("todayTransactions").textContent = fullyFilteredTxs.length.toLocaleString();
+            const totalIn = fullyFilteredTxs.filter(tx => tx.type === 'Cash-In').reduce((sum, tx) => sum + (tx.amount || 0), 0);
+            const totalOut = fullyFilteredTxs.filter(tx => tx.type === 'Cash-Out').reduce((sum, tx) => sum + (tx.amount || 0), 0);
+            document.getElementById('todayCashInTotal').textContent = `Tsh ${totalIn.toLocaleString()}`;
+            document.getElementById('todayCashOutTotal').textContent = `Tsh ${totalOut.toLocaleString()}`;
+
+
+            // --- Calculate Float Balance ---
+            const floatByService = SERVICES.reduce((acc, s) => ({ ...acc, [s]: 0 }), {});
+            allFloatTxs.forEach(f => {
+                const change = f.type === 'received' ? (f.amount || 0) : -(f.amount || 0);
+                if (floatByService[f.service] !== undefined) floatByService[f.service] += change;
+            });
+            allTransactions.forEach(t => {
+                let change = 0;
+                if (t.type === 'Cash-In') change = t.amount || 0;
+                else if (t.type === 'Cash-Out') change = -(t.amount || 0);
+                if (floatByService[t.service] !== undefined) floatByService[t.service] += change;
+            });
+
+            const summaryTableBody = document.getElementById("dashboard-summary-table-body");
+            summaryTableBody.innerHTML = '';
+
+            const servicesToDisplay = serviceFilterValue === 'all' ? SERVICES : [serviceFilterValue];
+
+            servicesToDisplay.forEach(service => {
+                const serviceTxs = dateFilteredTxs.filter(tx => tx.service === service);
+                const transactionCount = serviceTxs.length;
+                const cashInTotal = serviceTxs.filter(tx => tx.type === 'Cash-In').reduce((sum, tx) => sum + tx.amount, 0);
+                const cashOutTotal = serviceTxs.filter(tx => tx.type === 'Cash-Out').reduce((sum, tx) => sum + tx.amount, 0);
+                const totalCashInOut = cashInTotal + cashOutTotal;
+                const floatBalance = floatByService[service] || 0;
+
+                const row = summaryTableBody.insertRow();
+                row.className = "hover:bg-gray-100 dark:hover:bg-gray-800";
+                row.innerHTML = `
+                    <td class="px-4 py-3 font-medium">${service}</td>
+                    <td class="px-4 py-3 font-mono">Tsh ${floatBalance.toLocaleString()}</td>
+                    <td class="px-4 py-3 font-mono">${transactionCount}</td>
+                    <td class="px-4 py-3 font-mono">Tsh ${cashInTotal.toLocaleString()}</td>
+                    <td class="px-4 py-3 font-mono">Tsh ${cashOutTotal.toLocaleString()}</td>
+                    <td class="px-4 py-3 font-mono">Tsh ${totalCashInOut.toLocaleString()}</td>
+                `;
+            });
+
+             if (summaryTableBody.children.length === 0) {
+                summaryTableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">No data for the selected period.</td></tr>`;
+            }
+        }
+
+        function handleTransactionForm(e) {
+            e.preventDefault();
+            const service = document.getElementById("service").value;
+            const type = document.getElementById("type").value;
+            const mobileNumber = document.getElementById("mobileNumber").value;
+            const amount = parseInt(document.getElementById("amount").value, 10);
+
+            const newTransaction = {
+                id: crypto.randomUUID(),
+                service, type, mobileNumber, amount,
+                timestamp: new Date().toISOString(),
+            };
+            if (!newTransaction.mobileNumber || !/^0[67]\d{8}$/.test(newTransaction.mobileNumber)) return showNotification("Enter a valid 10-digit number starting with 06 or 07.", "error");
+            if (!newTransaction.amount || newTransaction.amount <= 0) return showNotification("Please enter a valid amount.", "error");
+            
+            allTransactions.unshift(newTransaction);
+            saveToStorage(TRANSACTIONS_KEY, allTransactions);
+            
+            const notificationMessage = `[WakalaPro] Your ${type.toLowerCase()} of Tsh ${amount.toLocaleString()} has been received. Thank you.`;
+            showNotification(notificationMessage, "success");
+            
+            e.target.reset();
+            
+            addTransactionToTable(newTransaction);
+            updateDashboard();
+        }
+        
+        function handleFloatForm(e) {
+            e.preventDefault();
+            const newFloat = {
+                id: crypto.randomUUID(),
+                service: document.getElementById("floatService").value,
+                type: document.getElementById("floatType").value,
+                aggregatorNumber: document.getElementById("floatAggregatorNumber").value,
+                amount: parseInt(document.getElementById("floatAmount").value, 10),
+                timestamp: new Date().toISOString(),
+            };
+            if (!newFloat.aggregatorNumber || !/^0[67]\d{8}$/.test(newFloat.aggregatorNumber)) return showNotification("Enter a valid 10-digit aggregator number.", "error");
+            if (!newFloat.amount || newFloat.amount <= 0) return showNotification("Please enter a valid float amount.", "error");
+
+            allFloatTxs.unshift(newFloat);
+            saveToStorage(FLOAT_TX_KEY, allFloatTxs);
+            const notificationMessage = `[WakalaPro] Your float-${newFloat.type} of Tsh ${newFloat.amount.toLocaleString()} has been recorded. Thank you.`;
+            showNotification(notificationMessage, "success");
+            e.target.reset();
+
+            addFloatToTable(newFloat);
+            updateDashboard();
+        }
+        
+        function performDelete(docId, type, deleteBtn) {
+            if (type === 'transaction') {
+                allTransactions = allTransactions.filter(tx => tx.id !== docId);
+                saveToStorage(TRANSACTIONS_KEY, allTransactions);
+            } else {
+                allFloatTxs = allFloatTxs.filter(ftx => ftx.id !== docId);
+                saveToStorage(FLOAT_TX_KEY, allFloatTxs);
+            }
+            deleteBtn.closest('tr').remove();
+            checkEmptyTables();
+            showNotification("Entry deleted successfully.", "success");
+            hideModal();
+            updateDashboard();
+        }
+
+        function handleSearch(e, type) {
+            const searchTerm = e.target.value.toLowerCase();
+            if (type === 'transaction') {
+                const filtered = allTransactions.filter(tx => Object.values(tx).some(val => String(val).toLowerCase().includes(searchTerm)));
+                renderTransactions(filtered);
+            } else {
+                const filtered = allFloatTxs.filter(ftx => Object.values(ftx).some(val => String(val).toLowerCase().includes(searchTerm)));
+                renderFloatHistory(filtered);
+            }
+        }
+        
+        function exportToCSV(data, filename) {
+            if (data.length === 0) {
+                showNotification("No data to export.", "error");
+                return;
+            }
+            const headers = Object.keys(data[0]);
+            let csv = headers.join(',') + '\n';
+            data.forEach(row => {
+                csv += headers.map(header => `"${row[header] === undefined ? '' : String(row[header]).replace(/"/g, '""')}"`).join(',') + '\n';
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        function toggleTheme() {
+            const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+            applyTheme(newTheme);
+            saveToStorage(THEME_KEY, newTheme);
+        }
+
+        function applyTheme(theme) {
+            const toggleIcon = themeToggle.querySelector('i');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                toggleIcon.classList.remove('fa-moon');
+                toggleIcon.classList.add('fa-sun');
+            } else {
+                document.documentElement.classList.remove('dark');
+                toggleIcon.classList.remove('fa-sun');
+                toggleIcon.classList.add('fa-moon');
+            }
+        }
+
+        function showModal() { modal.classList.add('show'); }
+        function hideModal() { modal.classList.remove('show'); deleteAction = null; }
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'show';
+            notification.classList.add(type === 'success' ? 'bg-success' : 'bg-error');
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.classList.remove('bg-success', 'bg-error'), 500);
+            }, 3000);
+        }
+
+        initApp();
+    });
+    </script>
+</body>
+</html>
